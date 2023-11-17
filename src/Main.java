@@ -1,6 +1,5 @@
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -19,8 +18,7 @@ public class Main {
 
         try (BufferedReader bufferedReader = new BufferedReader(new FileReader(args[0]))) {
             int totalLines = 0;
-            Map<String, List<App>> categorised = new HashMap<>();
-            Map<String, Integer> categoryDiscardedCount = new HashMap<>();
+            Map<String, CategoryStats> categorised = new HashMap<>();
 
             String line;
             while ((line = bufferedReader.readLine()) != null) {
@@ -28,25 +26,25 @@ public class Main {
                 if (totalLines > 1) {
                     String[] fields = line.trim().split(",");
                     try {
-                        App app = new App(fields[COL_NAME], (fields[COL_CAT]).toUpperCase(),
+                        App app = new App(fields[COL_NAME], fields[COL_CAT].toUpperCase(),
                                 Double.parseDouble(fields[COL_RATING]));
 
                         String category = app.getCategory();
-                        List<App> categorisedApps = categorised.get(category);
-                        if (categorisedApps == null) {
-                            categorisedApps = new ArrayList<>();
-                            categorised.put(category, categorisedApps);
+                        CategoryStats stats = categorised.get(category);
+                        if (stats == null) {
+                            stats = new CategoryStats();
+                            categorised.put(category, stats);
                         }
-                        categorisedApps.add(app);
+
+                        stats.addApp(app);
                     } catch (NumberFormatException e) {
-                        String category = fields[COL_CAT];
-                        Integer discardedCount = categoryDiscardedCount.get(category);
-                        if (discardedCount == null) {
-                            categoryDiscardedCount.put(category, 1);
-                        } else {
-                            categoryDiscardedCount.put(category, discardedCount + 1);
+                        CategoryStats stats = categorised.get(fields[COL_CAT]);
+                        if (stats == null) {
+                            stats = new CategoryStats();
+                            categorised.put(fields[COL_CAT], stats);
                         }
-                        continue;
+
+                        stats.incrementDiscardedCount();
                     }
                 }
             }
@@ -54,17 +52,19 @@ public class Main {
             for (String category : categorised.keySet()) {
                 System.out.println("Category: " + category);
 
-                List<App> apps = categorised.get(category);
+                CategoryStats stats = categorised.get(category);
+                List<App> apps = stats.getApps();
+
                 App highest = getHighestApp(apps);
                 App lowest = getLowestApp(apps);
                 double average = averageRating(apps);
 
                 System.out.println("Highest: " + highest.getName() + " " + highest.getRating());
                 System.out.println("Lowest: " + lowest.getName() + " " + lowest.getRating());
-                System.out.println("Average: " +  average);
-                System.out.println("Count: " +  apps.size());
+                System.out.println("Average: " + average);
+                System.out.println("Count: " + apps.size());
 
-                int discarded = categoryDiscardedCount.getOrDefault(category, 0);
+                int discarded = stats.getDiscardedCount();
                 System.out.println("Discarded: " + discarded);
 
                 System.out.println();
@@ -75,41 +75,43 @@ public class Main {
     }
 
     public static App getHighestApp(List<App> apps) {
-        if (apps.isEmpty()){
-            return null;
-        }
-        App highestApp = apps.get(0);
+        App highestApp = null;
         for (App app : apps) {
-            if (app.getRating() > highestApp.getRating()) {
-                highestApp = app;
+            if (!Double.isNaN(app.getRating())) {
+                if (highestApp == null || app.getRating() > highestApp.getRating()) {
+                    highestApp = app;
+                }
             }
         }
         return highestApp;
     }
 
     public static App getLowestApp(List<App> apps) {
-        if (apps.isEmpty()){
-            return null;
-        }
-        App lowestApp = apps.get(0);
+        App lowestApp = null;
         for (App app : apps) {
-            if (app.getRating() < lowestApp.getRating()) {
-                lowestApp = app;
+            if (!Double.isNaN(app.getRating())) {
+                if (lowestApp == null || app.getRating() < lowestApp.getRating()) {
+                    lowestApp = app;
+                }
             }
         }
         return lowestApp;
     }
 
     public static double averageRating(List<App> apps) {
-
-        if (apps.isEmpty()){
-            return 0.0;
-        }
         double sum = 0;
+        int count = 0;
         for (App app : apps) {
-            sum += app.getRating();
+            double rating = app.getRating();
+
+            if (!Double.isNaN(rating)) {
+                sum += rating;
+                count++;
+            }
         }
-        double average = sum / apps.size();
+
+        double average;
+        average = sum / count;
         return average;
     }
 }
