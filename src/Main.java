@@ -46,6 +46,7 @@ public class Main {
                         } else {
                             categoryDiscardedCount.put(category, discardedCount + 1);
                         }
+                        continue;
                     }
                 }
             }
@@ -74,9 +75,12 @@ public class Main {
     }
 
     public static App getHighestApp(List<App> apps) {
-        App highestApp = null;
+        if (apps.isEmpty()){
+            return null;
+        }
+        App highestApp = apps.get(0);
         for (App app : apps) {
-            if (highestApp == null || app.getRating() > highestApp.getRating()) {
+            if (app.getRating() > highestApp.getRating()) {
                 highestApp = app;
             }
         }
@@ -84,9 +88,12 @@ public class Main {
     }
 
     public static App getLowestApp(List<App> apps) {
-        App lowestApp = null;
+        if (apps.isEmpty()){
+            return null;
+        }
+        App lowestApp = apps.get(0);
         for (App app : apps) {
-            if (lowestApp == null || app.getRating() < lowestApp.getRating()) {
+            if (app.getRating() < lowestApp.getRating()) {
                 lowestApp = app;
             }
         }
@@ -94,6 +101,10 @@ public class Main {
     }
 
     public static double averageRating(List<App> apps) {
+
+        if (apps.isEmpty()){
+            return 0.0;
+        }
         double sum = 0;
         for (App app : apps) {
             sum += app.getRating();
